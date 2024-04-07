@@ -22,3 +22,9 @@ class User(AbstractUser):
             models.UniqueConstraint(fields=['refer_code'], name='unique_fields')
         ]
 
+
+class Referrals(models.Model):
+    refer_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    referral = models.OneToOneField(User, related_name='referral', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
