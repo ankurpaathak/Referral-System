@@ -2,12 +2,17 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import User, Referrals
-from .serializers import UserSerializer
+from .serializers import UserSerializer, LoginSerializer
 
 from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 import random
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from datetime import timedelta
+from django.utils import timezone
+
 
 def generate_refer_code(name):
     cleaned_user_name = name.replace(" ", "").upper()
@@ -48,3 +53,16 @@ class UserRegistration(APIView):
                     Referrals.objects.create(refer_by=refer_by, referral=referral).save()
             return Response({"user_id": user.id, "message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserLogin(ObtainAuthToken):
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        token.expires = timezone.now() + timedelta(days=7)
+        token.save()
+        return Response({'token': token.key, 'created_at': token.created})
