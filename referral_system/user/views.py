@@ -13,6 +13,9 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import logout
 from datetime import timedelta
 from django.utils import timezone
+from rest_framework.pagination import PageNumberPagination
+
+
 
 class GetUserIdFromToken:
 
@@ -84,6 +87,34 @@ class UserDetails(APIView):
                     'created_at': serializer.data['created_at']
                 }
                 return Response(user_dict)
+            return Response(user_object)
+        return Response()
+
+
+class UserReferrals(APIView):
+    user = GetUserIdFromToken()
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 20
+
+    def get(self, request):
+
+        user_id = self.user.get_user_id(request)
+        if user_id is not None:
+            user_object = User.objects.filter(id=user_id).first()
+            if user_object:
+                referrals_user = Referrals.objects.filter(refer_by=user_id).select_related('referral')
+                paginator = self.pagination_class()
+                result_page = paginator.paginate_queryset(referrals_user, request)
+                user_list = []
+                for user in result_page:
+                    serializer = UserSerializer(user.referral)
+                    user_list.append({
+                        'name': serializer.data['name'],
+                        'email': serializer.data['email'],
+                        'referral_code': serializer.data['refer_code'],
+                        'created_at': serializer.data['created_at']
+                    })
+                return paginator.get_paginated_response(user_list)
             return Response(user_object)
         return Response()
 
