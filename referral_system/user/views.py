@@ -14,6 +14,18 @@ from django.contrib.auth import logout
 from datetime import timedelta
 from django.utils import timezone
 
+class GetUserIdFromToken:
+
+    def get_user_id(self, request):
+        try:
+            token_header = request.headers.get('Authorization')
+            token = str.split(token_header, ' ')[1]
+            token_obj = Token.objects.get(key=token)
+            user_id = token_obj.user_id
+            return user_id
+        except Token.DoesNotExist:
+            return None
+        
 
 def generate_refer_code(name):
     cleaned_user_name = name.replace(" ", "").upper()
@@ -54,6 +66,26 @@ class UserRegistration(APIView):
                     Referrals.objects.create(refer_by=refer_by, referral=referral).save()
             return Response({"user_id": user.id, "message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserDetails(APIView):
+    user = GetUserIdFromToken()
+
+    def get(self, request):
+        user_id = self.user.get_user_id(request)
+        if user_id is not None:
+            user_object = User.objects.filter(id=user_id).first()
+            if user_object:
+                serializer = UserSerializer(user_object)
+                user_dict = {
+                    'name': serializer.data['name'],
+                    'email': serializer.data['email'],
+                    'referral_code': serializer.data['refer_code'],
+                    'created_at': serializer.data['created_at']
+                }
+                return Response(user_dict)
+            return Response(user_object)
+        return Response()
 
 
 class UserLogin(ObtainAuthToken):
