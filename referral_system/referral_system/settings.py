@@ -80,8 +80,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'referral_db',
-        'USER': 'ankur',
-        'PASSWORD': 'ankur',
+        'USER': 'user',
+        'PASSWORD': 'password',
         'HOST': 'db',
         'PORT': '3306',
         'OPTIONS': {
