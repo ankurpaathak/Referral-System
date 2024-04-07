@@ -10,6 +10,7 @@ from rest_framework.permissions import AllowAny
 import random
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
+from django.contrib.auth import logout
 from datetime import timedelta
 from django.utils import timezone
 
@@ -66,3 +67,15 @@ class UserLogin(ObtainAuthToken):
         token.expires = timezone.now() + timedelta(days=7)
         token.save()
         return Response({'token': token.key, 'created_at': token.created})
+
+
+class UserLogout(APIView):
+    def post(self, request):
+        try:
+            token = request.META['HTTP_AUTHORIZATION'].split('token ')[1]
+            Token.objects.get(key=token).delete()
+            logout(request)
+            return Response({"message": "User logged out successfully."}, status=status.HTTP_200_OK)
+        except (KeyError, Token.DoesNotExist):
+            return Response({"message": "Invalid token or user not authenticated."},
+                            status=status.HTTP_401_UNAUTHORIZED)
